@@ -1,0 +1,6 @@
+ul#todo-list { margin: 0px; padding: 0px; }
+ul#todo-list li { list-style-type: none; }
+li#todo-template { display: none; }
+li p { display: inline-block; margin: 0px;  }
+li.edit p { display: none; }
+li.done p { text-decoration: line-through; }

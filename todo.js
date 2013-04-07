@@ -27,6 +27,7 @@
         item.className = 'edit';
         item.appendChild(item.input);
         item.input.addEventListener('change', commitText);
+        item.input.addEventListener('blur', commitText);
     }
 
     function commitText(event) {
