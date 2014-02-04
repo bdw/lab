@@ -39,6 +39,7 @@ public class SimpleQueue<T> extends AbstractQueue<T> {
     protected T pop() {
 	Node node = head;
 	T value = node.value;
+	node.value = null;
 	head = node.next;
 	node.next = freeList;
 	freeList = node;
