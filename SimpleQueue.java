@@ -16,6 +16,13 @@ public class SimpleQueue<T> extends AbstractQueue<T> {
 	}
     }
 
+    public SimpleQueue(T[] items) {
+	for (int i = 0; i < items.length; i++) {
+	    freeList = new Node();
+	    push(items[i]);
+	}
+    }
+    
     public boolean isEmpty() {
 	return head == null;
     }
