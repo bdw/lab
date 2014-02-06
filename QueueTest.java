@@ -3,7 +3,7 @@ public class QueueTest {
     public static void main(String args[]) {
 	//	testSimpleQueue();
 	//	testPriorityQueue();
-	testQueueForConcurrency(true, 5);
+	testQueueForConcurrency(false, 7);
 	//	testQueueForConcurrency(true);
     }
 
@@ -81,17 +81,9 @@ public class QueueTest {
 	}
 	try {
 	    prod.join();
+	    queue.join();
 	} catch (InterruptedException ex) {
 	    System.out.println("INTERRUPT IN JOIN");
-	}
-	try {
-	    synchronized (queue) {
-		while (!queue.isEmpty()) {
-		    queue.wait();
-		}
-	    } 
-	} catch (InterruptedException ex) {
-	    System.out.println("INTERUPT IN WAIT");
 	}
 	for (int i = 0; i < numThreads; i++) {
 	    consumers[i].interrupt();

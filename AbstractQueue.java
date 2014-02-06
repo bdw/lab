@@ -1,26 +1,86 @@
 
 public abstract class AbstractQueue<T> {
+    private Object getLock = new Object();
+    private Object putLock = new Object();
+    private int getWaiting = 0;
+    private int putWaiting = 0;
 
-    public synchronized T get() throws InterruptedException {
+    public T get() throws InterruptedException {
 	T value = null;
-	while(isEmpty()) {
-	    wait();
+	boolean success = false;
+	do { 
+	    synchronized (this) {
+		if (!isEmpty()) {
+		    value = pop();
+		    success = true;
+		}
+	    }
+	    if (!success) {
+		synchronized (getLock) {
+		    getWaiting += 1;
+		    getLock.wait(); 
+		    // actually, this is a bug; if InterruptedException 
+		    // is thrown from wait() then getWaiting will not be 
+		    // decreased
+		    getWaiting -= 1;
+		}
+	    }
+	} while (!success);
+	synchronized (putLock) {
+	    if (putWaiting > 0) {
+		putLock.notify();
+	    }
 	}
-	value = pop();
-	notifyAll();
 	return value;
     }
 
-    public synchronized void put(T value) throws InterruptedException {
-	while (isFull()) {
-	    wait();
+    public void put(T value) throws InterruptedException {
+	boolean success = false;
+	do {
+	    synchronized (this) {
+		if (!isFull()) {
+		    push(value);
+		    success = true;
+		}
+	    }
+	    if (!success) {
+		synchronized(putLock) {
+		    putWaiting += 1;
+		    putLock.wait();
+		    putWaiting -= 1;
+		}
+	    }
+	} while (!success);
+	synchronized (getLock) {
+	    if (getWaiting > 0) {
+		getLock.notify();
+	    }
 	}
-	push(value);
-	notifyAll();
+    }
+    /** wait until the queue is empty */
+    public void join() throws InterruptedException {
+	boolean done = false;
+	do {
+	    synchronized (this) {
+		done = isEmpty();
+	    }
+	    if (!done) {
+		// bit confusing to use the putLock
+		synchronized (putLock) {
+		    putWaiting += 1;
+		    putLock.wait();
+		    putWaiting -= 1;
+		    // re-broadcast the notify (others are waiting)
+		    if (putWaiting > 0) {
+			putLock.notify();
+		    }
+		}
+	    }
+	} while(!done);
     }
 
-    protected abstract boolean isEmpty();
-    protected abstract boolean isFull();
+    public abstract boolean isEmpty();
+    public abstract boolean isFull();
     protected abstract T pop();
     protected abstract void push(T object);
 }
