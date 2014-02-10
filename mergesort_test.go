@@ -33,3 +33,11 @@ func TestIterativeMergeSort(t *testing.T) {
 	}
 
 }
+
+func TestConcurrentMergeSort(t *testing.T) {
+	sample := rand.Perm(65536)
+	sorted := ConcurrentMergeSort(sample)
+	if !testSortOrder(sorted) {
+		t.Error("ConcurrentMergeSort: not in sort order")
+	}
+}

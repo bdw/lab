@@ -1,5 +1,8 @@
 package mergesort
 
+import (
+	"sync"
+)
 
 func Merge(a, b, c []int) {
 	var i, j, k int
@@ -64,4 +67,42 @@ func IterativeMergeSort(values []int) []int {
 	return values
 }
 
+const ConcurrentMergers int = 5
 
+func mergeDriver(values, space []int, size int, 
+	generator chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := range generator {
+		mid := i + size
+		end := min(mid + size, len(values))
+		Merge(values[i:mid], values[mid:end], space[i:end])
+	}
+}
+
+
+func mergeGenerator(size, length int) chan int {
+	generator := make(chan int)
+	go func() {
+		for i := 0; i + size < length; i += (2*size) {
+			generator <- i
+		}
+		close(generator)
+	}()
+	return generator
+}
+
+func ConcurrentMergeSort(values []int) []int {
+	// begin in the same way as iterative merge sort
+	space := make([]int, len(values))
+	for i := 1; i < len(values); i *= 2 {
+		var wg sync.WaitGroup
+		generator := mergeGenerator(i, len(values))
+		for j := 0; j < ConcurrentMergers; j++ {
+			wg.Add(1)
+			go mergeDriver(values, space, i, generator, &wg)
+		}
+		wg.Wait()
+		values, space = space, values
+	}
+	return values
+}
