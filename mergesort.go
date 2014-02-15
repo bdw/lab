@@ -67,9 +67,8 @@ func IterativeMergeSort(values []int) []int {
 	return values
 }
 
-const ConcurrentMergers int = 5
 
-func mergeDriver(values, space []int, size int, 
+func mergeDriver(values, space []int, size int,
 	generator chan int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for i := range generator {
@@ -81,7 +80,7 @@ func mergeDriver(values, space []int, size int,
 
 
 func mergeGenerator(size, length int) chan int {
-	generator := make(chan int)
+	generator := make(chan int, length / size)
 	go func() {
 		for i := 0; i + size < length; i += (2*size) {
 			generator <- i
@@ -91,13 +90,13 @@ func mergeGenerator(size, length int) chan int {
 	return generator
 }
 
-func ConcurrentMergeSort(values []int) []int {
+func ConcurrentMergeSort(values []int, concurrentMergers int) []int {
 	// begin in the same way as iterative merge sort
 	space := make([]int, len(values))
 	for i := 1; i < len(values); i *= 2 {
 		var wg sync.WaitGroup
 		generator := mergeGenerator(i, len(values))
-		for j := 0; j < ConcurrentMergers; j++ {
+		for j := 0; j < concurrentMergers; j++ {
 			wg.Add(1)
 			go mergeDriver(values, space, i, generator, &wg)
 		}

@@ -35,7 +35,7 @@ func TestIterativeMergeSort(t *testing.T) {
 
 func TestConcurrentMergeSort(t *testing.T) {
 	sample := rand.Perm(65536)
-	sorted := ConcurrentMergeSort(sample)
+	sorted := ConcurrentMergeSort(sample, 5)
 	if !testSortOrder(sorted) {
 		t.Error("ConcurrentMergeSort: not in sort order")
 	}
@@ -64,6 +64,6 @@ func BenchmarkConcurrentMergeSort(b *testing.B) {
 		b.StopTimer()
 		sample := rand.Perm(65536)
 		b.StartTimer()
-		ConcurrentMergeSort(sample)
+		ConcurrentMergeSort(sample, 5)
 	}
 }
