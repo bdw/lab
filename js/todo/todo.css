@@ -1,0 +1,12 @@
+ul#todo { margin: 0px; padding: 0px; }
+ul#todo li { list-style-type: none; }
+
+li#template input.check { display: none; }
+li#template p { display: inline; }
+li#template input#add { display: inline; }
+
+li p { display: inline; margin: 0px;  }
+li.todo input.text { display: none; }
+
+li.edit p { display: none; }
+li.done p { text-decoration: line-through; }

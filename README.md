@@ -27,4 +27,11 @@ is a begin. To test use the following command in the source directory:
 I think we can improve upon this design, however my goal was to get
 something working as simple as possible. Also note that the recursive
 merge sort implementation is naive by design.
->>>>>>> mergesort/master
+
+=======
+mini-todo
+=========
+
+Todo list in &lt; 100 Lines of javascript. 
+
+This is to show what can be done using just the DOM and a bit of cleverness.
