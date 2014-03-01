@@ -1,2 +1,4 @@
 *~
 *.class
+random.bytes
+random.bytes.copy
