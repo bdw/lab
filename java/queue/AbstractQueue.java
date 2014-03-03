@@ -12,9 +12,7 @@ public abstract class AbstractQueue<T> {
 	    synchronized (this) {
 		if (!isEmpty()) {
 		    value = pop();
-		    if (value == null) {
-			throw new Error("Value was null from pop()");
-		    }
+		    assert value != null;
 		    success = true;
 		}
 	    }
@@ -29,6 +27,7 @@ public abstract class AbstractQueue<T> {
 		}
 	    }
 	} while (!success);
+	assert value != null;
 	synchronized (putLock) {
 	    if (putWaiting > 0) {
 		putLock.notify();
@@ -39,9 +38,7 @@ public abstract class AbstractQueue<T> {
 
     public void put(T value) throws InterruptedException {
 	boolean success = false;
-	if (value == null) {
-	    throw new Error("Value put is null");
-	}
+	assert value != null;
 	do {
 	    synchronized (this) {
 		if (!isFull()) {
@@ -63,6 +60,7 @@ public abstract class AbstractQueue<T> {
 	    }
 	}
     }
+
     /* wait until the queue is empty */
     public void join() throws InterruptedException {
 	boolean done = false;

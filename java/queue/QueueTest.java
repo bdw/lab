@@ -3,9 +3,8 @@ public class QueueTest {
     public static void main(String args[]) {
 	//	testSimpleQueue();
 	//	testPriorityQueue();
-	for (int i = 0; i < 100; i++) {
-	    testQueueForConcurrency(false, 7);
-	}
+	testQueueForConcurrency(false, 7);
+	testQueueForConcurrency(true, 9);
 	//	testQueueForConcurrency(true);
     }
 
@@ -32,6 +31,7 @@ public class QueueTest {
 	    ex.printStackTrace();
 	}
     }
+
     /* test single threaded usage (not the intended usage */
     private static void testPriorityQueue() {
 	String[] keys = new String[]{"WOW", "SUCH PRIORITY", "MUCH HEAP"};
@@ -90,12 +90,27 @@ public class QueueTest {
 	    // by the way - that is not something for a queue to fix
 	    // since the queue doesn't know who its clients are!
 	    queue.join();
+	    // an open question is whether you'd like to signal a 
+	    // 'closed' state to clients - this has its drawbacks
+	    // because the routines then become much more complex!
 	} catch (InterruptedException ex) {
 	    System.out.println("INTERRUPT IN JOIN");
 	}
-	for (int i = 0; i < numThreads; i++) {
-	    consumers[i].interrupt();
-	}
+	// a stop routine. As the queue has emptied (join()-ed) that 
+	// doesn't actually guarantee that the threads have all finished.
+	// And when they aren't waiting on something the interruption is
+	// lost, so they won't stop. This is basically the argument
+	// for sending the 'closed' signal via the channel.
+	boolean isAlive;
+	do {
+	    isAlive = false;
+	    for (int i = 0; i < numThreads; i++) {
+		if (consumers[i].isAlive()) {
+		    consumers[i].interrupt();
+		    isAlive = true;
+		}
+	    }
+	} while (isAlive);
     }
 
     private static class Producer extends Thread {
