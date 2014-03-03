@@ -3,7 +3,9 @@ public class QueueTest {
     public static void main(String args[]) {
 	//	testSimpleQueue();
 	//	testPriorityQueue();
-	testQueueForConcurrency(false, 7);
+	for (int i = 0; i < 100; i++) {
+	    testQueueForConcurrency(false, 7);
+	}
 	//	testQueueForConcurrency(true);
     }
 
@@ -72,15 +74,21 @@ public class QueueTest {
 	} else {
 	    queue = new SimpleQueue<String>(3);
 	}
-	Producer prod = new Producer(queue, keys);
-	prod.start();
+	Producer a = new Producer(queue, keys);
+	Producer b = new Producer(queue, keys);
+	a.start();
+	b.start();
 	Thread consumers[] = new Thread[numThreads];
 	for (int i = 0; i < numThreads; i++) {
 	    consumers[i] = new Consumer(queue, Integer.toString(i));
 	    consumers[i].start();
 	}
 	try {
-	    prod.join();
+	    a.join();
+	    b.join();
+	    // this is not a good way to wait for all producers to end,
+	    // by the way - that is not something for a queue to fix
+	    // since the queue doesn't know who its clients are!
 	    queue.join();
 	} catch (InterruptedException ex) {
 	    System.out.println("INTERRUPT IN JOIN");

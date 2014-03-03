@@ -32,6 +32,7 @@ public class SimpleQueue<T> extends AbstractQueue<T> {
     }
     
     protected void push(T value) {
+	assert value != null;
 	Node node = freeList;
 	freeList = node.next;
 	node.value = value;
@@ -44,12 +45,16 @@ public class SimpleQueue<T> extends AbstractQueue<T> {
     }
     
     protected T pop() {
+	assert head != null && head.value != null;
 	Node node = head;
 	T value = node.value;
 	node.value = null;
 	head = node.next;
 	node.next = freeList;
 	freeList = node;
+	if (value == null) {
+	    throw new Error("Value is null");
+	}
 	return value;
     }
 }
