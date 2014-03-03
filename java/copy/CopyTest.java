@@ -15,8 +15,10 @@ public class CopyTest {
 	    return;
 	}
 	try {
-	    Copy.simple(input, output, 1 << 16);
+	    Copy.threaded(input, output, 1 << 16);
 	} catch (IOException e) {
+	    e.printStackTrace();
+	} catch (InterruptedException e) {
 	    e.printStackTrace();
 	}
     }

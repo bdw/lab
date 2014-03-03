@@ -3,7 +3,7 @@ test: CopyTest.class random.bytes
 	java CopyTest random.bytes
 	sha256sum random.bytes random.bytes.copy
 
-CopyTest.class: Copy.class
+CopyTest.java: Copy.class
 
 %.class: %.java
 	javac $<
