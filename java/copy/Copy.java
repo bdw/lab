@@ -38,6 +38,7 @@ public class Copy {
 			ready = true;
 			buffer = current;
 			notifyAll();
+			// i don't like this wait()
 			wait();
 			current = reserve;
 			reserve = buffer;
@@ -46,12 +47,16 @@ public class Copy {
 	    } catch (InterruptedException e) {
 	    } catch (IOException e) {
 		exception = e;
+	    } finally {
+		synchronized (this) {
+		    // count being negative is actually the 
+		    // 'stop signal' to the reader
+		    // notify in case you're waiting.
+		    count = -1;
+		    ready = true;
+		    notifyAll();
+		}
 	    }
-	    synchronized (this) {
-		notifyAll();
-		// in case you're waiting
-	    }
-
 	}
     }
 
@@ -68,23 +73,24 @@ public class Copy {
 	public void run() {
 	    byte[] buffer;
 	    int count;
+	    // check if reader is alive, no need to do anything otherwise
 	    while (reader.isAlive()) {
 		synchronized(reader) {
 		    // pull data from the reader
-		    while (reader.isAlive() && !reader.ready) {
+		    while (!reader.ready) {
 			try {
 			    reader.wait();
 			} catch (InterruptedException e) {
 			    return;
 			}
 		    }
-		    if (!reader.isAlive())
-			break;
 		    buffer = reader.buffer;
 		    count = reader.count;
 		    reader.ready = false;
 		    reader.notify();
 		}
+		if (count < 0)
+		    break;
 		try {
 		    output.write(buffer, 0, count);
 		} catch (IOException e) {

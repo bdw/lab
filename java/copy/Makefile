@@ -1,7 +1,9 @@
 
+
+
 test: CopyTest.class random.bytes
 	java CopyTest random.bytes
-	sha256sum random.bytes random.bytes.copy
+	sh checksum.sh random.bytes random.bytes.copy
 
 CopyTest.java: Copy.class
 
