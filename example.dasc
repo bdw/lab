@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+/* note - for windows this is different */
+#include <sys/mman.h> 
+
+#include "dynasm/dasm_proto.h"
+#include "dynasm/dasm_x86.h"
+
+// DynASM directives.
+|.arch x64
+|.actionlist actions
+/* call a function (64 bit)
+ * and yes, i did steal this from jitdemo :-) */
+|.macro callp, addr
+|  mov64  rax, (uintptr_t)addr
+|  call   rax
+|.endmacro
+
+
+
+int main(int argc, char **argv) {
+    dasm_State * state;
+    char * hello = "hello, world";
+    size_t codesize;
+    char * memory;
+    void (*fp)(void);
+    /* initialize the assembler structure */
+    dasm_init(&state, 1);
+    dasm_setup(&state, actions);
+    /* add some instructions */
+#define Dst &state
+    | mov rdi, hello
+    | callp puts
+    | ret
+#undef Dst
+    /* link the code and get its' final size */
+    dasm_link(&state, &codesize);
+    /* get memory */
+    memory = mmap(NULL, codesize, PROT_READ | PROT_WRITE,
+                  MAP_ANON | MAP_PRIVATE, -1, 0);
+    /* write the machine code */
+    dasm_encode(&state, memory);
+    /* clear up the assembler */
+    dasm_free(&state);
+    /* make the memory executable */
+    mprotect(memory, codesize, PROT_EXEC | PROT_READ);
+    /* cast to function */
+    fp = (void(*)(void)) memory;
+    /* call the function */
+    fp();
+    /* destroy the memory */
+    munmap(memory, codesize);
+    /* and leave */
+    exit(0);
+}
