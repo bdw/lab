@@ -13,15 +13,16 @@
 /* call a function (64 bit)
  * and yes, i did steal this from jitdemo :-) */
 |.macro callp, addr
-|  mov64  rax, (uintptr_t)addr
-|  call   rax
+|  mov64  rdx, (uintptr_t)addr
+|  call   rdx
 |.endmacro
 
 
 
 int main(int argc, char **argv) {
     dasm_State * state;
-    char * hello = "hello, world";
+    char * hello = "hello, %s\n";
+    char * world = "world";
     size_t codesize;
     char * memory;
     void (*fp)(void);
@@ -30,13 +31,15 @@ int main(int argc, char **argv) {
     dasm_setup(&state, actions);
     /* add some instructions */
 #define Dst &state
-    | mov rdi, hello
-    | callp puts
+    | mov64 rdi, (uintptr_t)hello
+    | mov64 rsi, (uintptr_t)world
+    | mov64 rax, (uint64_t)0
+    | callp printf
     | ret
 #undef Dst
     /* link the code and get its' final size */
     dasm_link(&state, &codesize);
-    /* get memory */
+    /* get r/w memory */
     memory = mmap(NULL, codesize, PROT_READ | PROT_WRITE,
                   MAP_ANON | MAP_PRIVATE, -1, 0);
     /* write the machine code */
