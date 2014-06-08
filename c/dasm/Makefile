@@ -3,6 +3,6 @@ example: example.c
 	$(CC) example.c
 
 %.c: %.dasc
-	lua dynasm/dynasm.lua $< > $@
+	lua dynasm/dynasm.lua -o $@ $<
 
 

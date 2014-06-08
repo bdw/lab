@@ -21,20 +21,22 @@
 
 int main(int argc, char **argv) {
     dasm_State * state;
-    char * hello = "hello, %s\n";
-    char * world = "world";
     size_t codesize;
     char * memory;
-    void (*fp)(void);
+    int (*fp)(int, int);
+    int result;
     /* initialize the assembler structure */
     dasm_init(&state, 1);
     dasm_setup(&state, actions);
     /* add some instructions */
 #define Dst &state
-    | mov64 rdi, (uintptr_t)hello
-    | mov64 rsi, (uintptr_t)world
-    | mov64 rax, (uint64_t)0
-    | callp printf
+    | push rbp
+    | mov rbp, rsp
+    | mov [rsp-4], edi
+    | mov [rsp-8], esi
+    | mov rax, [rsp-4]
+    | imul rax, [rsp-8]
+    | pop rbp
     | ret
 #undef Dst
     /* link the code and get its' final size */
@@ -49,9 +51,10 @@ int main(int argc, char **argv) {
     /* make the memory executable */
     mprotect(memory, codesize, PROT_EXEC | PROT_READ);
     /* cast to function */
-    fp = (void(*)(void)) memory;
+    fp = (int(*)(int, int)) memory;
     /* call the function */
-    fp();
+    result = fp(6,7);
+    printf("hello %d\n", result);
     /* destroy the memory */
     munmap(memory, codesize);
     /* and leave */
