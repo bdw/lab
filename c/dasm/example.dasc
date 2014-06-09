@@ -32,10 +32,12 @@ int main(int argc, char **argv) {
 #define Dst &state
     | push rbp
     | mov rbp, rsp
-    | mov [rsp-4], edi
-    | mov [rsp-8], esi
-    | mov rax, [rsp-4]
-    | imul rax, [rsp-8]
+    | sub rsp, 8
+    | mov [rbp-4], edi
+    | mov [rbp-8], esi
+    | mov rax, [rbp-4]
+    | imul rax, [rbp-8]
+    | mov rsp, rbp
     | pop rbp
     | ret
 #undef Dst
