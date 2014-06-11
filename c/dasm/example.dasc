@@ -18,29 +18,43 @@
 |.endmacro
 
 
+void foo(dasm_State **Dst) {
+    | push rbp
+    | mov rbp, rsp
+    | push rdi
+    | push rsi
+}
+
+void bar(dasm_State **Dst) {
+    | mov eax, dword [rbp-8]
+    | imul eax, dword [rbp-16]
+}
+
+void baz(dasm_State **Dst) {
+    | mov rsp, rbp
+    | pop rbp
+    | ret
+}
+
+void dump(char * file, char * mem, size_t s) {
+     FILE * f = fopen(file, "w");
+     fwrite(mem, sizeof(char), s, f);
+     fclose(f);
+}
 
 int main(int argc, char **argv) {
     dasm_State * state;
     size_t codesize;
     char * memory;
     int (*fp)(int, int);
-    int result;
+    int i, result;
     /* initialize the assembler structure */
     dasm_init(&state, 1);
     dasm_setup(&state, actions);
     /* add some instructions */
-#define Dst &state
-    | push rbp
-    | mov rbp, rsp
-    | sub rsp, 8
-    | mov [rbp-4], edi
-    | mov [rbp-8], esi
-    | mov rax, [rbp-4]
-    | imul rax, [rbp-8]
-    | mov rsp, rbp
-    | pop rbp
-    | ret
-#undef Dst
+    foo(&state);
+    bar(&state);
+    baz(&state);
     /* link the code and get its' final size */
     dasm_link(&state, &codesize);
     /* get r/w memory */
@@ -48,6 +62,7 @@ int main(int argc, char **argv) {
                   MAP_ANON | MAP_PRIVATE, -1, 0);
     /* write the machine code */
     dasm_encode(&state, memory);
+    dump("example.dump", memory, codesize);
     /* clear up the assembler */
     dasm_free(&state);
     /* make the memory executable */
