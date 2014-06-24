@@ -18,24 +18,6 @@
 |.endmacro
 
 
-void foo(dasm_State **Dst) {
-    | push rbp
-    | mov rbp, rsp
-    | push rdi
-    | push rsi
-}
-
-void bar(dasm_State **Dst) {
-    | mov eax, dword [rbp-8]
-    | imul eax, dword [rbp-16]
-}
-
-void baz(dasm_State **Dst) {
-    | mov rsp, rbp
-    | pop rbp
-    | ret
-}
-
 void dump(char * file, char * mem, size_t s) {
      FILE * f = fopen(file, "w");
      fwrite(mem, sizeof(char), s, f);
@@ -46,15 +28,24 @@ int main(int argc, char **argv) {
     dasm_State * state;
     size_t codesize;
     char * memory;
-    int (*fp)(int, int);
-    int i, result;
+    double (*fp)(double, double);
+    double result;
+    int i;
     /* initialize the assembler structure */
     dasm_init(&state, 1);
     dasm_setup(&state, actions);
     /* add some instructions */
-    foo(&state);
-    bar(&state);
-    baz(&state);
+    #define Dst &state
+    | push rbp
+    | mov rbp, rsp
+    | sub rsp, 16
+    | movsd qword [rbp-8], xmm0
+    | movsd qword [rbp-16], xmm1
+    | mulsd xmm0, xmm1
+    | mov rsp, rbp
+    | pop rbp
+    | ret
+    #undef Dst
     /* link the code and get its' final size */
     dasm_link(&state, &codesize);
     /* get r/w memory */
@@ -68,10 +59,10 @@ int main(int argc, char **argv) {
     /* make the memory executable */
     mprotect(memory, codesize, PROT_EXEC | PROT_READ);
     /* cast to function */
-    fp = (int(*)(int, int)) memory;
+    fp = (double(*)(double, double)) memory;
     /* call the function */
-    result = fp(6,7);
-    printf("hello %d\n", result);
+    result = fp(6.0,7.0);
+    printf("hello %f\n", result);
     /* destroy the memory */
     munmap(memory, codesize);
     /* and leave */
