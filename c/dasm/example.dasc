@@ -10,13 +10,6 @@
 // DynASM directives.
 |.arch x64
 |.actionlist actions
-/* call a function (64 bit)
- * and yes, i did steal this from jitdemo :-) */
-|.macro callp, addr
-|  mov64  rdx, (uintptr_t)addr
-|  call   rdx
-|.endmacro
-
 
 void dump(char * file, char * mem, size_t s) {
      FILE * f = fopen(file, "w");
@@ -28,23 +21,27 @@ int main(int argc, char **argv) {
     dasm_State * state;
     size_t codesize;
     char * memory;
-    double (*fp)(double, double);
-    double result;
+    void * globals[10];
+    int (*fp)(int, int);
     int i;
     /* initialize the assembler structure */
     dasm_init(&state, 1);
+    dasm_setupglobal(&state, globals, 10);
     dasm_setup(&state, actions);
+
     /* add some instructions */
     #define Dst &state
-    | push rbp
-    | mov rbp, rsp
-    | sub rsp, 16
-    | movsd qword [rbp-8], xmm0
-    | movsd qword [rbp-16], xmm1
-    | mulsd xmm0, xmm1
-    | mov rsp, rbp
-    | pop rbp
-    | ret
+    | push rbp;
+    | mov rbp, rsp;
+    | lea rcx, [>1];
+    | jmp rcx;
+    | mov rax, 1337;
+    | jmp >2;
+    |1:
+    | mov rax, 42;
+    |2:
+    | pop rbp;
+    | ret;
     #undef Dst
     /* link the code and get its' final size */
     dasm_link(&state, &codesize);
@@ -59,10 +56,9 @@ int main(int argc, char **argv) {
     /* make the memory executable */
     mprotect(memory, codesize, PROT_EXEC | PROT_READ);
     /* cast to function */
-    fp = (double(*)(double, double)) memory;
+    fp = (int(*)(int, int)) memory;
     /* call the function */
-    result = fp(6.0,7.0);
-    printf("hello %f\n", result);
+    printf("hello %d, %d, %d\n", fp(1, 3), fp(1, 2), fp(0, 4));
     /* destroy the memory */
     munmap(memory, codesize);
     /* and leave */
