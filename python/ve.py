@@ -23,9 +23,20 @@ if not os.path.isdir(HOME_DIR):
 parser = argparse.ArgumentParser(description='virtualenv helper')
 parser.add_argument('-m', '--make', action='store_const', const=True)
 parser.add_argument('-d', '--delete', action='store_const', const=True)
-parser.add_argument('name')
+parser.add_argument('name', nargs='?')
 
 args = parser.parse_args(sys.argv[1:])
+
+if not args.name:
+    print("Available virtualenvs:")
+    names = [name for name in os.listdir(HOME_DIR)
+             if os.path.isdir(os.path.join(HOME_DIR, name))]
+    border = '-' * (reduce(max, map(len, names)) + 2)
+    print(border)
+    for name in names:
+        print(' ' + name)
+    print(border)
+    quit(0)
 DEST_DIR = os.path.join(HOME_DIR, args.name)
 if args.make:
     print("Making virtualenv at: {0}".format(DEST_DIR))
@@ -38,4 +49,4 @@ elif args.delete:
     shutil.rmtree(DEST_DIR)
 else:
     rcfile = os.path.join(DEST_DIR, 'bin', 'activate')
-    os.execvp('bash', ['--rcfile', rcfile])
+    os.execvp('bash', ['bash', '--rcfile', rcfile])
