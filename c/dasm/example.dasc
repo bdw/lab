@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 /* note - for windows this is different */
-#include <sys/mman.h> 
+#include <sys/mman.h>
 
 #include "dynasm/dasm_proto.h"
 #include "dynasm/dasm_x86.h"
@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     char * memory;
     void * globals[10];
     int (*fp)(int, int);
-    int i;
+    int i = 8, j = 0;
     /* initialize the assembler structure */
     dasm_init(&state, 1);
     dasm_setupglobal(&state, globals, 10);
@@ -31,16 +31,8 @@ int main(int argc, char **argv) {
 
     /* add some instructions */
     #define Dst &state
-    | push rbp;
-    | mov rbp, rsp;
-    | lea rcx, [>1];
-    | jmp rcx;
-    | mov rax, 1337;
-    | jmp >2;
-    |1:
-    | mov rax, 42;
-    |2:
-    | pop rbp;
+    | mov Rq(i), 1337;
+    | mov Rq(j), Rq(i);
     | ret;
     #undef Dst
     /* link the code and get its' final size */
