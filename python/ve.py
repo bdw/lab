@@ -31,7 +31,7 @@ if not args.name:
     print("Available virtualenvs:")
     names = [name for name in os.listdir(HOME_DIR)
              if os.path.isdir(os.path.join(HOME_DIR, name))]
-    border = '-' * (reduce(max, map(len, names)) + 2)
+    border = '-' * (reduce(max, map(len, names), 0) + 2)
     print(border)
     for name in names:
         print(' ' + name)
