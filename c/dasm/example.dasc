@@ -33,12 +33,11 @@ int main(int argc, char **argv) {
     #define Dst &state
     | sub rsp, 0x20;
     | mov Rq(i), rsp;
-    | xor Rq(j), Rq(j);
-    | mov qword [Rq(i)], 1337;
-    | mov Rq(j), [Rq(i)+Rq(j)*2];
-    | mov Rq(i+1), Rq(i);
-    | mov Rq(i), 0x10;
-    | mov [Rq(i+1)+Rq(i)], Rq(i+2);
+    | mov dword [Rq(i)], 0x20;
+    | xor Rq(i+2), Rq(i+2);
+    | mov Rd(i+1), [Rq(i)+Rq(i+2)*2];
+    | inc dword [Rd(i)];
+    | mov rax, 1337;
     | add rsp, 0x20;
     | ret;
     #undef Dst

@@ -1,4 +1,4 @@
-a.out
-example.c
+example
+*.c
 *~
 example.dump
