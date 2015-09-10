@@ -1,3 +1,3 @@
 [submodule "c/dasm/dynasm"]
 	path = c/dasm/dynasm
-	url = git://github.com/bdw/dynasm.git
+	url = git://github.com/MoarVM/dynasm.git
