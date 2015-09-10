@@ -1,5 +1,7 @@
 DASM_HEADER := dynasm/dasm_x86.h
-ALL := example
+OBJDUMP := gobjdump
+all: example.dump
+
 example: example.c dynasm/dasm_x86.h
 	cc -g -o example example.c
 
@@ -11,9 +13,8 @@ example.c: example.dasc dynasm/minilua dynasm/dynasm.lua dynasm/dasm_x86.lua
 
 dynasm/dynasm.lua: 	dynasm/dasm_x86.lua
 
-dump: example
-	./example
-	objdump -D -b binary -m i386:x86-64 -M intel example.dump
+example.dump: example
+	./example; $(OBJDUMP) -D -b binary -m i386:x86-64 -M intel example.dump
 
 clean:
 	rm -f $(ALL) *.c
