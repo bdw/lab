@@ -1,5 +1,5 @@
 DASM_HEADER := dynasm/dasm_x86.h
-OBJDUMP := gobjdump
+OBJDUMP := objdump
 all: example.dump
 
 example: example.c dynasm/dasm_x86.h
@@ -9,7 +9,7 @@ dynasm/minilua: dynasm/minilua.c
 	cc -o dynasm/minilua -lm dynasm/minilua.c
 
 example.c: example.dasc dynasm/minilua dynasm/dynasm.lua dynasm/dasm_x86.lua
-	dynasm/minilua dynasm/dynasm.lua -o $@ $<
+	dynasm/minilua dynasm/dynasm.lua -o $@ $< 2> dynasm-log.txt
 
 dynasm/dynasm.lua: 	dynasm/dasm_x86.lua
 
