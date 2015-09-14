@@ -32,20 +32,9 @@ int main(int argc, char **argv) {
 
     /* add some instructions */
     #define Dst &state
-    | mov rax, [r12+k];
-    | mov rax, [Rq(b)+k];
-    | mov [r12+k], rax;
-
-    | mov [Rq(b)+k], rax;
-    | mov [Rq(i)+c], rax;
-    | mov [Rq(b)], rax;
-
-    | mov [Rq(b)+2], rax;
-    | mov [Rq(a-2)+c], rax;
-    | mov [Rq(a-2)+Rq(b)*8], rax;
-    | mov [Rq(a)+Rq(b)*8], rax;
-    | mov Rq(b), [Rq(a-2)+Rq(b)*8+c];
-
+    | add Rq(4), Rq(0);
+    | add [Rq(4)], Rq(0);
+    //    | .byte 0x24;
     #undef Dst
     /* link the code and get its' final size */
     dasm_link(&state, &codesize);
