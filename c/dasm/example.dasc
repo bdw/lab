@@ -23,8 +23,9 @@ int main(int argc, char **argv) {
     char * memory;
     void * globals[10];
     int (*fp)(int, int);
-    int a = 6, b = 12, c = 136;
+    int a = 6, b = 12, c = 136, d = 0;
     int i = 9, j = 5, k = 1024;
+    int error;
     /* initialize the assembler structure */
     dasm_init(&state, 1);
     dasm_setupglobal(&state, globals, 10);
@@ -32,9 +33,34 @@ int main(int argc, char **argv) {
 
     /* add some instructions */
     #define Dst &state
-    | add Rq(4), Rq(0);
-    | add [Rq(4)], Rq(0);
-    //    | .byte 0x24;
+    /* 3 different modes should all work */
+    /*
+    | add Rq(4), Rq(1);
+    | add [Rq(4)], Rq(1);
+    | add [Rq(4)+1], Rq(1);
+    | add [Rq(4)+1024], Rq(1);
+    */
+    /* also with variable offsets */
+    /*
+    | add [Rq(4)+d], Rq(2);
+    | add [Rq(4)+c], Rq(1);
+    | add [Rq(4)+k], Rq(1);
+    */
+    /* SIB with rsp as base should also work */
+    | add [Rq(4)+Rq(1)*8], Rq(8);
+    /* SIB with r12 as idx should work */
+    | add [rcx+r12*4], rbx;
+    /* SIB with rsp as idx should not */
+    //    | add [Rq(2)+Rq(4)*2], Rq(7);
+    | add [Rq(1)+Rq(12)*4], Rq(3);
+    /*
+    | add [Rq(1)], Rq(4);
+    | add [Rq(1)+1], Rq(4);
+    | add [Rq(1)+1024], Rq(4);
+    | add [rsp+43], Rq(4);
+    | add [Rq(5)+4], Rq(0);
+    */
+    | ret;
     #undef Dst
     /* link the code and get its' final size */
     dasm_link(&state, &codesize);
@@ -42,7 +68,11 @@ int main(int argc, char **argv) {
     memory = mmap(NULL, codesize, PROT_READ | PROT_WRITE,
                   MAP_ANON | MAP_PRIVATE, -1, 0);
     /* write the machine code */
-    dasm_encode(&state, memory);
+    error = dasm_encode(&state, memory);
+    if (error != DASM_S_OK) {
+        fprintf(stderr, "OH NO ENCODING FAILED :-(: error=0x%x\n", error);
+        exit(1);
+    }
     dump("example.dump", memory, codesize);
     /* clear up the assembler */
     dasm_free(&state);
