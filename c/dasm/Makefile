@@ -14,7 +14,7 @@ example.c: example.dasc dynasm/minilua dynasm/dynasm.lua dynasm/dasm_x86.lua
 dynasm/dynasm.lua: 	dynasm/dasm_x86.lua
 
 example.dump: example
-	./example; $(OBJDUMP) -D -b binary -m i386:x86-64 -M intel example.dump
+	rm example.dump; ./example; $(OBJDUMP) -D -b binary -m i386:x86-64 -M intel example.dump
 
 clean:
-	rm -f $(ALL) *.c
+	rm -f example example.dump example.c

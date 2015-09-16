@@ -34,33 +34,27 @@ int main(int argc, char **argv) {
     /* add some instructions */
     #define Dst &state
     /* 3 different modes should all work */
-    /*
     | add Rq(4), Rq(1);
     | add [Rq(4)], Rq(1);
     | add [Rq(4)+1], Rq(1);
     | add [Rq(4)+1024], Rq(1);
-    */
-    /* also with variable offsets */
-    /*
-    | add [Rq(4)+d], Rq(2);
-    | add [Rq(4)+c], Rq(1);
-    | add [Rq(4)+k], Rq(1);
-    */
-    /* SIB with rsp as base should also work */
-    | add [Rq(4)+Rq(1)*8], Rq(8);
-    /* SIB with r12 as idx should work */
-    | add [rcx+r12*4], rbx;
-    /* SIB with rsp as idx should not */
-    //    | add [Rq(2)+Rq(4)*2], Rq(7);
-    | add [Rq(1)+Rq(12)*4], Rq(3);
-    /*
-    | add [Rq(1)], Rq(4);
-    | add [Rq(1)+1], Rq(4);
-    | add [Rq(1)+1024], Rq(4);
-    | add [rsp+43], Rq(4);
+    /* SIB encoding should also work */
+    | add [Rq(4)+Rq(6)*8], Rq(7);
+    | add [Rq(12)+Rq(5)*8], Rq(13);
+    | add [Rq(4)+Rq(12)*4], Rq(9);
+    /* NB - rsp as an index is unsupported */
+    /* a few rbp tests */
     | add [Rq(5)+4], Rq(0);
-    */
-    | ret;
+    | add [Rq(5)], Rq(3);
+    | add [Rq(5)+1024], Rq(7);
+    | add [Rq(5)], Rq(5);
+    | add Rq(5), Rq(1);
+    /* offset is expected in SIB case, too */
+    | add [Rq(5)+Rq(9)*2], Rq(3);
+    /* hardcoded should also still work */
+    | add [rbp], rax;
+    | add [rbp+4], rax;
+    |ret;
     #undef Dst
     /* link the code and get its' final size */
     dasm_link(&state, &codesize);
