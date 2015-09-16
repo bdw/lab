@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
     | add [Rq(4)], Rq(1);
     | add [Rq(4)+1], Rq(1);
     | add [Rq(4)+1024], Rq(1);
+    | add [Rq(12)], Rq(1);
     /* SIB encoding should also work */
     | add [Rq(4)+Rq(6)*8], Rq(7);
     | add [Rq(12)+Rq(5)*8], Rq(13);
@@ -51,6 +52,7 @@ int main(int argc, char **argv) {
     | add Rq(5), Rq(1);
     /* offset is expected in SIB case, too */
     | add [Rq(5)+Rq(9)*2], Rq(3);
+    | add [Rq(13)], rax;
     /* hardcoded should also still work */
     | add [rbp], rax;
     | add [rbp+4], rax;
