@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
     | movzx r8, r8w;
     | movzx r8, Rw(8);
     | movzx Rq(9), word [Rq(10)];
+    | movzx Rd(8), Rw(10);
     |ret;
     #undef Dst
     /* link the code and get its' final size */
