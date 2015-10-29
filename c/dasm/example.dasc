@@ -65,7 +65,14 @@ int main(int argc, char **argv) {
     | movzx eax, r6b;
     | movzx Rd(0), Rb(6);
     | movzx Rd(0), Rw(6);
-
+    | movzx Rd(1), Rb(2);
+    | movzx Rd(8), Rw(2);
+    | movzx Rd(8), Rb(2);
+    | movzx Rd(6), Rw(7);
+    | movzx Rq(6), Rb(7);
+    | add Rb(2), Rb(4);
+    | add Rb(1), Rb(8);
+    | add Rb(0), Rb(0);
     |ret;
     #undef Dst
     /* link the code and get its' final size */
