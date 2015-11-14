@@ -19,12 +19,9 @@ class PolyfileParser(object):
     class Error(Exception):
         pass
 
-    def __init__(self):
-        self.sections = []
-        self.position = 0
-
     def parse(self, buf):
         self.buf = buf
+        self.position = 0
         name     = self.read(self.word)
         sections = {}
         self.read(self.newline)
