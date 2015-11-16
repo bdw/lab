@@ -13,7 +13,7 @@ class PolyfileParser(object):
     whitespace  = re.compile(r'\s+')
     end         = re.compile(r'END')
     word        = re.compile(r'\w+')
-    number      = re.compile(r'\d\.\d+E\+\d+')
+    number      = re.compile(r'-?\d\.\d+E[+-]\d+')
     identifier  = re.compile(r'!?\d+')
 
     class Error(Exception):
@@ -53,6 +53,6 @@ class PolyfileParser(object):
     def read(self, expect):
         match = expect.match(self.buf, self.position)
         if match is None:
-            raise self.Error("%s was not matched at position %d" % (expect.pattern, self.position))
+            raise self.Error("%s was not matched (got %s...)" % (expect.pattern, self.buf[self.position:self.position+10]))
         self.position = match.end()
         return match.group()
