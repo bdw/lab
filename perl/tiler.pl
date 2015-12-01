@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 use Data::Dumper;
-
+use List::Util qw(sum);
 use sexpr;
 use warnings;
 use strict;
@@ -19,10 +19,14 @@ sub uniq {
     return keys %h;
 }
 
+sub avg {
+    return (sum(@_))/ scalar @_
+}
+
 package rule {
     my $pseudosym = 0;
     sub add {
-	my ($name, $tree, $sym, $cost) = @_;
+        my ($name, $tree, $sym, $cost) = @_;
         my $ctx = {
             # lookup path for values
             path => [],
@@ -61,7 +65,7 @@ package rule {
                 my $newsym = sprintf("#%s", $pseudosym++);
                 # divide cost by two
                 $cost /= 2;
-                # add rule and subrules to the list 
+                # add rule and subrules to the list
                 push @rules, decompose($ctx, $item, $newsym, $cost, @trace, $i);
                 push @$list, $newsym;
             } elsif (substr($item, 0, 1) eq '$') {
@@ -83,7 +87,7 @@ package rule {
         push @rules, rule->new($list, $sym, $cost);
         return @rules;
     }
-    
+
     sub combine {
         my @rules = @_;
         # %sets represents the symbols which can occur in combination (symsets)
@@ -121,7 +125,7 @@ package rule {
                             $trie{$head, $s_k1, $s_k2}{$rule_nr} = $rule->{sym};
                         }
                     }
-                } elsif (defined $1) {
+                } elsif (defined $sym1) {
                     # Handle the one-item case
                     for my $s_k1 (keys %{$lookup{$sym1}}) {
                         $trie{$head, $s_k1, -1}{$rule_nr} = $rule->{sym};
@@ -153,7 +157,6 @@ package rule {
             $added = scalar(keys %new_sets) - scalar(keys %sets) + $deleted;
             # Continue with newly generated sets
             %sets = %new_sets;
-
         } while ($added || $deleted);
 
         # Given that all possible symsets are known, we can now read
@@ -173,25 +176,6 @@ package rule {
     }
 };
 
-# Collect rules -> form list, table;
-# list contains 'shallow' nodes, maps rulenr -> rule
-# indirectly create rulenr -> terminal
-
-# Use a readable hash key separator
-local $; = ",";
-
-my $input = \*DATA;
-my @rules;
-
-# Collect rules from the grammar
-my $parser = sexpr->parser($input);
-while (my $tree = $parser->read) {
-    my $keyword = shift @$tree;
-    if ($keyword eq 'tile:') {
-	push @rules, rule::add(@$tree);
-    }
-}
-close $input;
 
 
 
@@ -200,61 +184,158 @@ sub generate_tables {
     # rulesets. Requires rules (pattern + symbol + cost) and rulesets
     # (indies into rules).
 
-
     my ($rules, $rulesets) = @_;
-    my ($table, $min_cost);
-    my (%implied_cost, %candidates, %flat, %trans);
+
+    print "Rules:\n";
+    for (my $rule_nr = 0; $rule_nr < @$rules; $rule_nr++) {
+        print "$rule_nr => ";
+        print sexpr::encode($rules->[$rule_nr]{pat}), ": ", $rules->[$rule_nr]{sym} , "\n";
+    }
 
     print "Rulesets:\n";
     for (my $ruleset_nr = 0; $ruleset_nr < @$rulesets; $ruleset_nr++) {
         print "$ruleset_nr => ";
         for my $rule_nr (@{$rulesets->[$ruleset_nr]}) {
-            print sexpr::encode($rules[$rule_nr]{pat}), ": ", $rules[$rule_nr]{sym}, ", ";
+            print "$rule_nr, ";
         }
         print "\n";
     }
-    # map symbols to rulesets and rule sets to ruleset numbers
+
+
+    my (%candidates, %trans, %symcost);
+    # map symbols to rulesets, rule set names to ruleset numbers
     for (my $ruleset_nr = 0; $ruleset_nr < @$rulesets; $ruleset_nr++) {
         my $ruleset = $rulesets->[$ruleset_nr];
-        my @syms = map { $rules[$_]{sym} } @$ruleset;
-        $candidates{$_}{$ruleset_nr} = 1 for @syms;
-        # ruleset is always presorted by rule::combine
+        for my $rule_nr (@$ruleset) {
+            my $sym = $rules->[$rule_nr]{sym};
+            $candidates{$sym}{$ruleset_nr} = 1;
+            # and ruleset symbols to rules and their costs
+            $symcost{$ruleset_nr}{$sym}{$rule_nr} = $rules->[$rule_nr]{cost};
+        }
         my $key = rule::set_key(@$ruleset);
         $trans{$key} = $ruleset_nr;
     }
 
-
     # build flat table first
+    my %flat;
     for (my $rule_nr = 0; $rule_nr < @$rules; $rule_nr++) {
-        my ($head, $sym1, $sym2) = @{$rules[$rule_nr]{pat}};
+        my $rule = $rules->[$rule_nr];
+        my ($head, $sym1, $sym2) = @{$rule->{pat}};
         if (defined $sym2) {
             for my $rs1 (keys %{$candidates{$sym1}}) {
                 for my $rs2 (keys %{$candidates{$sym2}}) {
-                    $flat{$head,$rs1,$rs2}{$rule_nr} = $rules[$rule_nr]{cost};
+                    $flat{$head,$rs1,$rs2}{$rule_nr} = 1;
                 }
             }
         } elsif (defined $sym1) {
             for my $rs1 (keys %{$candidates{$sym1}}) {
-                $flat{$head,$rs1,-1}{$rule_nr} = $rules[$rule_nr]{cost};
+                $flat{$head,$rs1,-1}{$rule_nr} = 1;
             }
         } else {
-            $flat{$head,-1,-1}{$rule_nr} = $rules[$rule_nr]{cost};
+            $flat{$head,-1,-1}{$rule_nr} = 1;
         }
     }
 
     # with the flat table, we can directly build the tiler table by expanding the keys
-    $table = {};
+    my $table = {};
+    my %reversed;
     while (my ($idx, $match) = each %flat) {
         my ($head, $rs1, $rs2) = split $;, $idx;
         my $key = rule::set_key(keys %$match);
+        die "Cannot find key $key" unless defined $trans{$key};
         $table->{$head}{$rs1}{$rs2} = $trans{$key};
+        # ruleset is generated by the following combinations of childrulesets
+        $reversed{$trans{$key}}{$rs1,$rs2} = 1;
     }
-    print Dumper($table);
+
+    # Calculate first-order implied costs; this method is problematic.
+    #
+    # First of all, it adds costs that are not specific, e.g. it adds
+    # the cost of all things that generate a reg for all things that
+    # refer to one second, it only add the cost of the first-order
+    # children, not of the children-of-children, *even though* they
+    # may be just a specifically implied. For example in the tree:
+    #
+    # (nz (and (load (addr reg) $sz) (const $val)))
+    #
+    # the implementation of (nz (and reg reg)) should be 'taxed' with
+    # the cost of the (separate) (load (addr reg)) and (const) nodes.
+    # The code below adds the (load) to the (and), and perhaps the
+    # (const) too; but not the cost of these to the (nz), which is
+    # where it matters most. To achieve that, we'd have to run this loop
+    # again, not with the implied costs added to the symcost. However,
+    # how do we implement *that* without getting into an infiinite loop?
+
+    # The costs themselves cannot converge as stated, because costs
+    # are implied recursively, hence they'd rise without bounds. On
+    # the other hand, maybe we can prove that when their *order* does
+    # not change, the relative size of the costs have converged...
+    # I will have to work that out further.
+    my %implied_costs;
+    for (my $ruleset_nr = 0; $ruleset_nr < @$rulesets; $ruleset_nr++) {
+        for my $rule_nr (@{$rulesets->[$ruleset_nr]}) {
+            my ($head, $sym1, $sym2) = @{$rules->[$rule_nr]{pat}};
+            my $cost = 0;
+            for my $child_sets (keys %{$reversed{$ruleset_nr}}) {
+                my ($cs1, $cs2) = split /$;/, $child_sets;
+                if (defined $sym2) {
+                    # the use of average values is a bit contentious,
+                    # in my opinion, but i have no better plan yet.
+                    $cost += avg values %{$symcost{$cs2}{$sym2}};
+                }
+                if (defined $sym1) {
+                    $cost += avg values %{$symcost{$cs1}{$sym1}};
+                }
+            }
+            # average it
+            $cost /= scalar keys %{$reversed{$ruleset_nr}};
+            $implied_costs{$ruleset_nr}{$rule_nr} = $cost;
+        }
+    }
+
+    # calculate cheapest-rule-to-implement $sym given $ruleset_nr
+    my $min_cost = {};
+    my %total_cost;
+    for (my $ruleset_nr = 0; $ruleset_nr < @$rulesets; $ruleset_nr++) {
+        for my $rule_nr (@{$rulesets->[$ruleset_nr]}) {
+            my $cost = $rules->[$rule_nr]{cost} + $implied_costs{$ruleset_nr}{$rule_nr};
+            my $sym = $rules->[$rule_nr]{sym};
+            my $best = $min_cost->{$ruleset_nr}{$sym};
+            if (!defined $best || $total_cost{$ruleset_nr, $best} > $cost) {
+                $min_cost->{$ruleset_nr}{$sym} = $rule_nr;
+            }
+            $total_cost{$ruleset_nr,$rule_nr} = $cost;
+        }
+    }
+    return ($table, $min_cost);
 }
 
 
-my @rulesets = rule::combine(@rules);
-my ($table, $min_cost) = generate_tables(\@rules, \@rulesets);
+# Collect rules -> form list, table;
+# list contains 'shallow' nodes, maps rulenr -> rule
+# indirectly create rulenr -> terminal
+
+# Use a readable hash key separator
+local $; = ",";
+
+my $input = \*DATA;
+my @_rules;
+
+# Collect rules from the grammar
+my $parser = sexpr->parser($input);
+while (my $tree = $parser->read) {
+    my $keyword = shift @$tree;
+    if ($keyword eq 'tile:') {
+        push @_rules, rule::add(@$tree);
+    }
+}
+close $input;
+
+
+my @_rulesets = rule::combine(@_rules);
+my ($table, $min_cost) = generate_tables(\@_rules, \@_rulesets);
+
+
 
 __DATA__
 # Minimal grammar to test tiler table generator
