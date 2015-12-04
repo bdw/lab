@@ -244,86 +244,82 @@ sub generate_table {
     return %table;
 }
 
+
 sub compute_costs {
     my ($rules, $rulesets, $table) = @_;
-
-    my %symcost;
-    for (my $ruleset_nr = 0; $ruleset_nr < @$rulesets; $ruleset_nr++) {
-        for my $rule_nr (@{$rulesets->[$ruleset_nr]}) {
-            my $rule = $rules->[$rule_nr];
-            $symcost{$ruleset_nr}{$rule->{sym}}{$rule_nr} = $rule->{cost};
-        }
-    }
 
     my %reversed;
     for my $head (keys %$table) {
         for my $rs1 (keys %{$table->{$head}}) {
             for my $rs2 (keys %{$table->{$head}->{$rs1}}) {
                 my $rsy = $table->{$head}{$rs1}{$rs2};
-                $reversed{$rsy}{$rs1,$rs2} = 1;
+                push @{$reversed{$rsy}}, [$rs1, $rs2];
             }
         }
     }
-
-    # Calculate first-order implied costs; this method is problematic.
-    #
-    # First of all, it adds costs that are not specific, e.g. it adds
-    # the cost of all things that generate a reg for all things that
-    # refer to one second, it only add the cost of the first-order
-    # children, not of the children-of-children, *even though* they
-    # may be just a specifically implied. For example in the tree:
-    #
-    # (nz (and (load (addr reg) $sz) (const $val)))
-    #
-    # the implementation of (nz (and reg reg)) should be 'taxed' with
-    # the cost of the (separate) (load (addr reg)) and (const) nodes.
-    # The code below adds the (load) to the (and), and perhaps the
-    # (const) too; but not the cost of these to the (nz), which is
-    # where it matters most. To achieve that, we'd have to run this loop
-    # again, not with the implied costs added to the symcost. However,
-    # how do we implement *that* without getting into an infiinite loop?
-
-    # The costs themselves cannot converge as stated, because costs
-    # are implied recursively, hence they'd rise without bounds. On
-    # the other hand, maybe we can prove that when their *order* does
-    # not change, the relative size of the costs have converged...
-    # I will have to work that out further.
-    my %implied_costs;
-    for (my $ruleset_nr = 0; $ruleset_nr < @$rulesets; $ruleset_nr++) {
-        for my $rule_nr (@{$rulesets->[$ruleset_nr]}) {
-            my ($head, $sym1, $sym2) = @{$rules->[$rule_nr]{pat}};
-            my $cost = 0;
-            for my $child_sets (keys %{$reversed{$ruleset_nr}}) {
-                my ($cs1, $cs2) = split /$;/, $child_sets;
-                if (defined $sym2) {
-                    # the use of average values is a bit contentious,
-                    # in my opinion, but i have no better plan yet.
-                    $cost += avg values %{$symcost{$cs2}{$sym2}};
-                }
-                if (defined $sym1) {
-                    $cost += avg values %{$symcost{$cs1}{$sym1}};
-                }
-            }
-            # average it
-            $cost /= scalar keys %{$reversed{$ruleset_nr}};
-            $implied_costs{$ruleset_nr}{$rule_nr} = $cost;
-        }
-    }
-
-    # calculate cheapest-rule-to-implement $sym given $ruleset_nr
+    # new attempt; converge at %min_cost.
+    # seed %rule_cost with the minimum-zero-order cost, %min_cost according to that
+    # compute first order cost using the seeded zero-order cost,
+    # compute minimum cost table again; while it remains changing,
+    # compute again with updated costs
+    my %rule_cost;
     my %min_cost;
-    my %total_cost;
+
+
     for (my $ruleset_nr = 0; $ruleset_nr < @$rulesets; $ruleset_nr++) {
         for my $rule_nr (@{$rulesets->[$ruleset_nr]}) {
-            my $cost = $rules->[$rule_nr]{cost} + $implied_costs{$ruleset_nr}{$rule_nr};
-            my $sym = $rules->[$rule_nr]{sym};
-            my $best = $min_cost{$ruleset_nr}{$sym};
-            if (!defined $best || $total_cost{$ruleset_nr, $best} > $cost) {
-                $min_cost{$ruleset_nr}{$sym} = $rule_nr;
+            my $cost = $rules->[$rule_nr]{cost};
+            my $sym  = $rules->[$rule_nr]{sym};
+            my $best = $min_cost{$ruleset_nr, $sym};
+            if (!defined($best) || $rule_cost{$ruleset_nr, $best} > $cost) {
+                $min_cost{$ruleset_nr, $sym} = $rule_nr;
             }
-            $total_cost{$ruleset_nr,$rule_nr} = $cost;
+            $rule_cost{$ruleset_nr, $rule_nr} = $cost;
         }
     }
+
+    print "Initial:\n";
+    for my $key (sort keys %min_cost) {
+        my ($ruleset_nr, $sym) = split /$;/, $key;
+        print "$ruleset_nr $sym $min_cost{$key}\n";
+    }
+
+    my $changed = 0;
+    do {
+        my %new_cost;
+        my %new_min;
+        for (my $ruleset_nr = 0; $ruleset_nr < @$rulesets; $ruleset_nr++) {
+            for my $rule_nr (@{$rulesets->[$ruleset_nr]}) {
+                my $cost = $rules->[$rule_nr]->{cost};
+                my ($head, $sym1, $sym2) = @{$rules->[$rule_nr]->{pat}};
+                # compute new cost of rule
+                for my $rsg (@{$reversed{$ruleset_nr}}) {
+                    $cost += $rule_cost{$rsg->[0], $min_cost{$rsg->[0], $sym1}} if defined $sym1;
+                    $cost += $rule_cost{$rsg->[1], $min_cost{$rsg->[1], $sym2}} if defined $sym2;
+                }
+                $cost /= scalar @{$reversed{$ruleset_nr}};
+                # determine new minimum cost rule
+                my $sym = $rules->[$rule_nr]->{sym};
+                my $best = $new_min{$ruleset_nr, $sym};
+                if (!defined ($best) || $new_cost{$ruleset_nr, $best} > $cost) {
+                    $new_min{$ruleset_nr, $sym} = $rule_nr;
+                }
+                $new_cost{$ruleset_nr, $rule_nr} = $cost;
+            }
+
+        }
+        $changed = 0;
+        # nb, i assume we've converged after the *relative* cost of rules doesn't change,
+        # but i only compute whether the *top* rule hasn't changed, and that's actually
+        # not sufficient in some cases
+        for my $key (keys %min_cost) {
+            die "huh $key" if !defined $new_min{$key};
+            $changed++ if $min_cost{$key} != $new_min{$key};
+        }
+
+        %rule_cost = %new_cost;
+        %min_cost  = %new_min;
+    } while($changed);
     return %min_cost;
 }
 
@@ -348,17 +344,24 @@ while (my $tree = $parser->read) {
 close $input;
 
 
-my @_rulesets = rule::combine(@_rules);
-my ($table, $min_cost) = generate_tables(\@_rules, \@_rulesets);
-
+my @_rulesets  = rule::combine(@_rules);
+my %_table     = generate_table(\@_rules, \@_rulesets);
+my %_min_cost  = compute_costs(\@_rules, \@_rulesets, \%_table);
+print "Second:\n";
+for my $key (sort keys %_min_cost) {
+    my ($ruleset_nr, $sym) = split /$;/, $key;
+    print "$ruleset_nr $sym $_min_cost{$key}\n";
+}
 
 
 __DATA__
 # Minimal grammar to test tiler table generator
-(tile: a (stack) reg 1)
-#(tile: c (addr reg $ofs) reg 2)
-#(tile: d (const $val) reg 2)
-(tile: e (load reg $size) reg 5)
-(tile: g (add reg reg) reg 2)
-(tile: i (add reg (load reg $size)) reg 6)
-#(tile: h (add reg (const $val)) reg 3)
+(tile: a (local) reg 1)
+(tile: b (const) reg 2)
+(tile: c (and reg reg) reg 2)
+(tile: d (nz reg) flag 2)
+(tile: o (addr reg) reg 2)
+(tile: l (load (addr reg)) reg 5)
+(tile: g (load reg) reg 4)
+(tile: v (nz (and (load (addr reg)) (const))) flag 6)
+(tile: e (nz (and reg (const))) flag 5)
