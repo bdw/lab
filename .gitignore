@@ -2,3 +2,5 @@
 *.class
 random.bytes
 random.bytes.copy
+c/roman
+c/word-finder
