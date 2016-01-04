@@ -4,3 +4,6 @@ random.bytes
 random.bytes.copy
 c/roman
 c/word-finder
+*.so.*
+jit-log.txt
+asm/bar
