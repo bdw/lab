@@ -20,20 +20,20 @@ roman_numeral:
         push rbp
         mov rbp, rsp
         sub rsp, 0x10             /* make space for two 32 bit values (or a single 64 bit value) */
-        mov dword [rsp], edi /* save the number we're using on the stack, malloc will kill it  */
+        mov dword ptr [rsp], edi /* save the number we're using on the stack, malloc will kill it  */
 
         mov edi, 0x10            /* 16 bytes are plenty for roman numerals. (max 4 bytes per order of magnitude, max 3 orders of magnitudes) */
         call malloc@PLT          /* rax now contains the pointer to our buffer */
-        mov edi, dword [rsp] /* restore our number */
+        mov edi, dword ptr [rsp] /* restore our number */
         mov rdx, 0               /* string index */
         mov rcx, 6               /* lookup array index */
 _outer:
         test edi, edi 
         jz _end                 /* if (number == 0) break outer */
         lea r8,  [rip+value]    
-        mov r9d,  dword [r8+rcx*4-0x4] /* current value */
+        mov r9d,  dword ptr [r8+rcx*4-0x4] /* current value */
         lea r8,  [rip+numeral]	
-	mov r10b, byte  [r8+rcx*1] /* current numeral */    
+	mov r10b, byte ptr [r8+rcx*1] /* current numeral */    
 _inner:
         cmp edi, r9d
         jl _subtractive /* if (m < values[i]) break inner */
