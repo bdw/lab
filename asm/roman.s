@@ -31,14 +31,14 @@ _outer:
         test edi, edi 
         jz _end                 /* if (number == 0) break outer */
         lea r8,  [rip+value]    
-        mov r9d,  dword ptr [r8+rcx*4-0x4] /* current value */
+        mov r9d,  dword ptr [r8+rcx*4] /* current value */
         lea r8,  [rip+numeral]	
 	mov r10b, byte ptr [r8+rcx*1] /* current numeral */    
 _inner:
         cmp edi, r9d
         jl _subtractive /* if (m < values[i]) break inner */
         sub edi, r9d
-        mov byte ptr [rax+rdx*1-1], r10b
+        mov byte ptr [rax+rdx*1], r10b
         inc rdx
         jmp _inner
 _subtractive:
