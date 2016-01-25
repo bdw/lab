@@ -10,7 +10,7 @@ int main (int argc, char **argv) {
         return 1;
     }
     result = rot13_encrypt(argv[1]);
-    puts(result);
+    printf("%s\n", result);
     free(result);
     return 0;
 }
