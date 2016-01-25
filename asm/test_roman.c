@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-char * roman_numeral(int);
+extern char * roman_numeral(int);
 
 int main(int argc, char **argv) {
     int i = 42;
