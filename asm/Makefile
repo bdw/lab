@@ -1,8 +1,7 @@
+OBJECTS:= test_roman test_rot13 test_dlopen test_fib
 
 .PHONY: all debug clean
-all: test_roman test_rot13 test_dlopen
-
-CFLAGS=-g -fPIC
+all: $(OBJECTS)
 
 test_dlopen: test_dlopen.c
 	$(CC) -g -o $@ $< -ldl
@@ -12,6 +11,9 @@ test_rot13: test_rot13.o ./librot13.so
 
 test_roman: test_roman.o ./libroman.so
 	$(CC) -o $@ $< ./libroman.so
+
+test_fib: test_fib.c fib.s
+	$(CC) -g -o $@ test_fib.c fib.s
 
 debug: roman.p6 libroman.so
 	perl6-gdb-m roman.p6
@@ -23,4 +25,4 @@ libroman.so: roman.s
 	$(CC) -g -shared -o $@ $<
 
 clean:
-	rm test_roman test_rot13 test_roman.o test_rot13.o libroman.so librot13.so
+	rm -f $(OBJECTS) *.so *.o

@@ -4,3 +4,4 @@ a.out
 test_roman
 test_rot13
 test_dlopen
+test_fib
