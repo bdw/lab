@@ -2,3 +2,4 @@ example
 *.c
 *~
 example.dump
+dynasm-log.txt

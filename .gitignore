@@ -7,3 +7,6 @@ c/word-finder
 *.so.*
 jit-log.txt
 asm/bar
+.#*
+*#
+*.dSYM/
