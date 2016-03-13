@@ -1,7 +1,7 @@
     .intel_syntax noprefix
-    .section __TEXT,__text
-    .globl _fib
-_fib:
+    .section .text
+    .globl fib
+fib:
     mov rax, 1
     mov rcx, 1
 loop:
