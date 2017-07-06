@@ -27,5 +27,8 @@ librot13.so: rot13.s
 libroman.so: roman.s
 	$(CC) -g -shared -o $@ $<
 
+test_walk_stack: walk_stack.S test_walk_stack.c
+	$(CC) -g -o $@ test_walk_stack.c walk_stack.S
+
 clean:
 	rm -f $(OBJECTS) *.so *.o
