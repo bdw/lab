@@ -27,8 +27,9 @@ librot13.so: rot13.s
 libroman.so: roman.s
 	$(CC) -g -shared -o $@ $<
 
-test_walk_stack: walk_stack.S test_walk_stack.c
-	$(CC) -g -o $@ test_walk_stack.c walk_stack.S
+
+test_stack_walk: stack_walk.s test_stack_walk.c
+	$(CC) -g -fno-omit-frame-pointer -o $@ stack_walk.s test_stack_walk.c
 
 clean:
 	rm -f $(OBJECTS) *.so *.o
