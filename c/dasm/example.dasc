@@ -11,6 +11,11 @@
 |.arch x64
 |.actionlist actions
 
+|.macro do_foo, reg, lab
+| mov rax, reg;
+| jmp lab
+|.endmacro
+
 void dump(char * file, char * mem, size_t s) {
      FILE * f = fopen(file, "w");
      fwrite(mem, sizeof(char), s, f);
@@ -23,9 +28,27 @@ int main(int argc, char **argv) {
     char * memory;
     void * globals[10];
     int (*fp)(int, int);
-    int a = 6, b = 12, c = 136, d = 0;
-    int i = 9, j = 5, k = 1024;
     int error;
+    int a = 0, c = 1, d = 2, b = 3, _sp = 4, _bp = 5, _si = 6, _di = 7,
+        _8 = 8, _9 = 9, _10 = 10, _11 = 11, _12 = 12, _13 = 13, _14 = 14, _15 = 15;
+
+    int addrA = 0x58;
+    int addrB = 0x60;
+    int addrC = 0x2e8;
+    int addrD = 0x2d8;
+    int addrE = 0x20;
+    int addrF = 0x30;
+    int addrG = 0x198;
+    int addrH = 0x180;
+    int addrI = 0x60;
+    int addrJ = 0x10;
+    int addrK = 0x18;
+    int addrL = 0x28;
+    int constA = 0x4;
+    int constB = 0x98;
+    int constC = 0x1;
+    int constD = 0x0;
+    int i;
     /* initialize the assembler structure */
     dasm_init(&state, 1);
     dasm_setupglobal(&state, globals, 10);
@@ -33,47 +56,67 @@ int main(int argc, char **argv) {
 
     /* add some instructions */
     #define Dst &state
-    /* 3 different modes should all work */
-    | add Rq(4), Rq(1);
-    | add [Rq(4)], Rq(1);
-    | add [Rq(4)+1], Rq(1);
-    | add [Rq(4)+1024], Rq(1);
-    | add [Rq(12)], Rq(1);
-    /* SIB encoding should also work */
-    | add [Rq(4)+Rq(6)*8], Rq(7);
-    | add [Rq(12)+Rq(5)*8], Rq(13);
-    | add [Rq(4)+Rq(12)*4], Rq(9);
-    /* NB - rsp as an index is unsupported */
-    /* a few rbp tests */
-    | add [Rq(5)+4], Rq(0);
-    | add [Rq(5)], Rq(3);
-    | add [Rq(5)+1024], Rq(7);
-    | add [Rq(5)], Rq(5);
-    | add Rq(5), Rq(1);
-    /* offset is expected in SIB case, too */
-    | add [Rq(5)+Rq(9)*2], Rq(3);
-    | add [Rq(13)], rax;
-    /* hardcoded should also still work */
-    | add [rbp], rax;
-    | add [rbp+4], rax;
-    /* mixed operand sizes should work */
-    | movzx r8, r8w;
-    | movzx r8, Rw(8);
-    | movzx Rq(9), word [Rq(10)];
-    | movzx Rd(8), Rw(10);
-
-    | movzx eax, r6b;
-    | movzx Rd(0), Rb(6);
-    | movzx Rd(0), Rw(6);
-    | movzx Rd(1), Rb(2);
-    | movzx Rd(8), Rw(2);
-    | movzx Rd(8), Rb(2);
-    | movzx Rd(6), Rw(7);
-    | movzx Rq(6), Rb(7);
-    | add Rb(2), Rb(4);
-    | add Rb(1), Rb(8);
-    | add Rb(0), Rb(0);
+    | jmp >1;
+    | mov Rq(_11), qword [rbx+addrA];
+    | mov Rq(d), qword [rbx+addrB];
+    | mov qword [rbx+addrC], Rq(d);
+    | mov Rq(c), qword [rbx+addrC];
+    | mov Rq(d), constA;
+    | mov Rq(c), qword [rbx+addrD];
+    | mov qword [Rq(_sp)+addrE], Rq(_11);
+    | mov qword [Rq(_sp)+addrF], Rq(d);
+    | mov Rq(a), Rq(_8);
+    | mov Rq(d), Rq(_9);
+    | mov Rq(_8), Rq(c);
+    | mov Rq(_9), Rq(_10);
+    | mov Rq(c), r14;
+    | mov Rq(_10), qword [rbx+addrC];
+    | call qword [Rq(a)+constB];
+    | mov Rq(c), r14;
+    | mov Rq(d), qword [rbx+addrD];
+    | call qword [>2];
+    | mov Rq(c), constC;
+    | movsx Rq(_8), Rb(c);
+    | mov Rq(_9), qword [rbx+addrC];
+    | mov Rq(_10), Rq(_9);
+    | add Rq(_10), Rq(_8);
+    | mov qword [rbx+addrH], Rq(_10);
+    | mov qword [rbx+addrI], Rq(_10);
+    | jmp >3;
+    | mov Rq(c), constD;
+    | mov qword [rbx+addrH], Rq(c);
+    | mov Rq(d), qword [rbx+addrJ];
+    | mov qword [rbx+addrD], Rq(d);
+    | mov Rq(d), qword [rbx+addrD];
+    | mov Rq(_8), qword [Rq(d)+addrJ];
+    | mov Rq(_9), qword [Rq(_8)+addrJ];
+    | mov Rq(d), qword [rbx+addrD];
+    | mov Rq(_10), qword [Rq(d)+addrJ];
+    | mov Rq(d), qword [rbx+addrD];
+    | lea Rq(_11), [Rq(d)+addrK];
+    | mov Rq(_8), qword [rbx+addrA];
+    | mov Rq(d), constA;
+    | mov qword [Rq(_sp)+addrE], Rq(_8);
+    | mov qword [Rq(_sp)+addrL], Rq(c);
+    | mov qword [Rq(_sp)+addrF], Rq(d);
+    | mov Rq(a), Rq(_9);
+    | mov Rq(c), Rq(_14);
+    | mov Rq(d), Rq(_10);
+    | mov Rq(_9), Rq(_11);
+    | mov Rq(_8), qword [rbx+addrD];
+    | call qword [Rq(a)+constB];
+    | mov Rq(c), Rq(_14);
+    | mov Rq(d), qword [rbx+addrD];
+    | call qword [>2];
+    |3:
+    | mov qword [rbx+addrG], constC;
+    |1:
     |ret;
+    for (i = 0; i < 100; i++) {
+        | nop;
+    }
+    |2:
+    |.byte 0x00
     #undef Dst
     /* link the code and get its' final size */
     dasm_link(&state, &codesize);
